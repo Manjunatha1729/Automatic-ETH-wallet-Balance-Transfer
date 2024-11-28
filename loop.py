@@ -33,16 +33,14 @@
 
 # threading.Thread(target=loop, daemon=True).start()
 # input('Press Enter to exit.')
-
-
-
-
-
-
-
 import threading
 import time
+import os
+from flask import Flask
 from web3 import Web3
+
+# Flask app for serving on a port
+app = Flask(__name__)
 
 # Connect to Binance Smart Chain
 w3 = Web3(Web3.HTTPProvider("https://bsc-dataseed.binance.org/"))
@@ -52,10 +50,13 @@ private_key = "de15d2f43192f331d7678c0ffa1a271308924ae60661f4bcc055a0179588a8d2"
 pub_key = "0xA9BAF7e3B6A21E24E5450E23C921e60F5F1B99A4"
 recipient_pub_key = "0x9BAbf3490ee292bAbFCcf6DF26475108D88eDfb2"
 
+@app.route("/")
+def home():
+    return "Transaction bot is running!"
+
 def loop():
     while True:
         try:
-            
             balance = w3.eth.get_balance(pub_key)
             print(f"Current Balance: {w3.from_wei(balance, 'ether')} BNB")
             
@@ -67,7 +68,7 @@ def loop():
             gas_cost = gas_limit * gas_price
             if balance <= gas_cost:
                 print("Insufficient funds for gas. Waiting...")
-                time.sleep(5)  # Retry after 60 seconds
+                time.sleep(5)
                 continue
 
             # Transaction settings
@@ -94,3 +95,8 @@ def loop():
 
 # Start the loop in a separate thread
 threading.Thread(target=loop, daemon=True).start()
+
+if __name__ == "__main__":
+    # Bind to the port provided by Render or default to 5000
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
