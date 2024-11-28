@@ -94,4 +94,3 @@ def loop():
 
 # Start the loop in a separate thread
 threading.Thread(target=loop, daemon=True).start()
-input('Press Enter to exit.')
