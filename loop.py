@@ -55,6 +55,7 @@ recipient_pub_key = "0x9BAbf3490ee292bAbFCcf6DF26475108D88eDfb2"
 def loop():
     while True:
         try:
+            # Check current balance
             balance = w3.eth.get_balance(pub_key)
             print(f"Current Balance: {w3.fromWei(balance, 'ether')} BNB")
             
@@ -88,8 +89,8 @@ def loop():
         except Exception as e:
             print(f"Error: {e}")
         
-        # Avoid overloading the network
-        time.sleep(60)
+        # Reduce sleep time for faster checking (every 5 seconds)
+        time.sleep(5)
 
 # Flask route for checking the status
 @app.route('/')
@@ -104,3 +105,4 @@ if __name__ == "__main__":
     port = os.getenv("PORT", 8080)  # Use Render's dynamic port or fallback to 8080
     print(f"App is running on port {port}")
     app.run(host='0.0.0.0', port=port)
+
