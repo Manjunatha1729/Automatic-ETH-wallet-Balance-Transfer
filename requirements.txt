@@ -1,2 +1,2 @@
+flask==2.3.2
 web3==7.6.0
-requests
