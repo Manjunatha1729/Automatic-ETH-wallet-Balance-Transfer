@@ -58,8 +58,4 @@ def loop():
         # Sleep for 5 seconds before checking balance again
         time.sleep(5)
 
-# Run the loop in a separate thread to allow continuous execution
-threading.Thread(target=loop, daemon=True).start()
-
-# Keep the script running
-input('')
+loop()
