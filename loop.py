@@ -1,100 +1,65 @@
-# import threading
-# from tracemalloc import stop
-# from web3 import Web3
-# w3 = Web3(Web3.HTTPProvider("https://www.alchemy.com/..."))
-# private_key = "4e752d04017a5a9ef9726b0ee262566562d6ef7e8a6c02529ebacb1ec1c38a2d"
-# pub_key ="0x9BAbf3490ee292bAbFCcf6DF26475108D88eDfb2"
-
-# recipient_pub_key = "0xA9BAF7e3B6A21E24E5450E23C921e60F5F1B99A4"
-# def loop():
-#     while True:
-#         balance = w3.eth.get_balance(pub_key)
-#         print()
-#         print(balance)
-#         gasPrice = w3.toWei('1100', 'gwei')
-#         gasLimit = 21000
-#         nonce = w3.eth.getTransactionCount(pub_key)
-#         tx = {
-#             'chainId': 3,
-#             'nonce': nonce,
-#             'to': recipient_pub_key,
-#             'value': balance-gasLimit*gasPrice,
-#             'gas': gasLimit,
-#             'gasPrice': gasPrice
-#         }
-
-#         try:
-#          if balance > 0:
-#             signed_tx = w3.eth.account.sign_transaction(tx, private_key)
-#             tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
-#             print(w3.toHex(tx_hash))
-#         except:
-#             print("insufficient funds")
-
-# threading.Thread(target=loop, daemon=True).start()
-# input('Press Enter to exit.')
-
 import threading
-import time
 from web3 import Web3
+import time
 
-# Connect to Binance Smart Chain
-w3 = Web3(Web3.HTTPProvider("https://bsc-dataseed.binance.org/"))
+# Initialize Web3 with the Polygon Mumbai RPC URL
+w3 = Web3(Web3.HTTPProvider("https://rpc.cardona.zkevm-rpc.com"))
 
-# Sensitive data: Use environment variables or secure storage in production
-private_key = "de15d2f43192f331d7678c0ffa1a271308924ae60661f4bcc055a0179588a8d2"
-pub_key = "0xA9BAF7e3B6A21E24E5450E23C921e60F5F1B99A4"
-recipient_pub_key = "0x9BAbf3490ee292bAbFCcf6DF26475108D88eDfb2"
+# Replace these with your actual private key and public key
+private_key = '3ddc37fdcd6ba99f9a16206467e459d4009ab30b3b4909a5ba0ca50ea40d2624'  # Replace with environment variables for security
+pub_key = "0x242F5c9a1D42e962A1c6B479349FFAf188163757"
+recipient_pub_key ="0x9BAbf3490ee292bAbFCcf6DF26475108D88eDfb2"
 
 def loop():
     while True:
         try:
+            # Check if Web3 is connected
+            if not w3.is_connected():
+                print("Error: Web3 is not connected to the network.")
+                break  # Exit the loop if the network is not connected
+
+            # Get balance in wei (smallest unit of Ethereum/MATIC)
             balance = w3.eth.get_balance(pub_key)
-            print(f"Fetched Balance: {balance} Wei")
-            balance_bnb = Web3.fromWei(balance, 'ether')  # Corrected this line
-            print(f"Balance in BNB: {balance_bnb} BNB")
+            balance_in_ether = w3.from_wei(balance, 'ether')
+            print(f"{balance_in_ether}")
             
-            # Gas settings
-            gas_price = w3.eth.gas_price  # Fetch current gas price dynamically
-            gas_limit = 21000
-            gas_cost = gas_limit * gas_price
-            
-            print(f"Gas Price: {gas_price} Wei")
-            print(f"Gas Cost: {gas_cost} Wei")
-            
-            # Check if balance is sufficient to cover gas cost
-            if balance_bnb <= 0:
-                print("Insufficient funds to send BNB. Waiting...")
-                time.sleep(5)  # Retry after 5 seconds
-                continue
-            
-            if balance <= gas_cost:
-                print("Insufficient funds for gas. Waiting...")
-                time.sleep(5)  # Retry after 5 seconds
-                continue
+            # Fetch current gas price from the network
+            gas_price = w3.eth.gas_price  # Get the current gas price in wei
+            gas_limit = 21000  # Gas limit for a basic transaction (simple transfer)
+            gas_cost = gas_limit * gas_price  # Total cost of gas in wei
+            if balance > gas_cost:
+                nonce = w3.eth.get_transaction_count(pub_key)  # Get the next available nonce
 
-            # Transaction settings
-            nonce = w3.eth.get_transaction_count(pub_key)
-            tx = {
-                'chainId': 56,  # BSC Mainnet Chain ID
-                'nonce': nonce,
-                'to': recipient_pub_key,
-                'value': balance - gas_cost,  # Deduct gas cost from the balance
-                'gas': gas_limit,
-                'gasPrice': gas_price
-            }
+                # Construct the transaction object
+                tx = {
+                    'chainId': 2442,  # Mumbai Testnet
+                    'nonce': nonce,    # Dynamic nonce based on the transaction count
+                    'to': recipient_pub_key,
+                    'value': balance - gas_cost,  # Send all balance except for gas
+                    'gas': gas_limit,
+                    'gasPrice': gas_price
+                }
 
-            # Sign and send transaction
-            signed_tx = w3.eth.account.sign_transaction(tx, private_key)
-            tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
-            print(f"Transaction sent: {w3.toHex(tx_hash)}")
-
+                # Ensure private key is valid
+                if private_key:
+                    try:
+                        # Sign the transaction
+                        signed_tx = w3.eth.account.sign_transaction(tx, private_key)
+                        tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+                        print(f"{w3.to_hex(tx_hash)}")
+                    except Exception as e:
+                        print(f"Error signing or sending transaction: {e}")
+                else:
+                    print("Error: Missing private key.")
+            
         except Exception as e:
             print(f"Error: {e}")
-        
-        # Avoid overloading the network
-        time.sleep(60)
 
-# Start the loop in a separate thread
+        # Sleep for 5 seconds before checking balance again
+        time.sleep(5)
+
+# Run the loop in a separate thread to allow continuous execution
 threading.Thread(target=loop, daemon=True).start()
 
+# Keep the script running
+input('')
